@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-carbon text-white antialiased;
+  overflow-x: hidden;
+}
+
+@layer utilities {
+  .section-shell {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-title {
+    @apply font-display text-4xl tracking-wide text-white sm:text-5xl;
+  }
+
+  .section-kicker {
+    @apply text-sm font-semibold uppercase tracking-[0.2em] text-epic-orange;
+  }
+
+  .card-surface {
+    @apply rounded-2xl border border-white/10 bg-graphite/80 shadow-xl shadow-black/30 backdrop-blur-sm;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-epic-orange;
+  }
+}
