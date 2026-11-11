@@ -15,11 +15,17 @@ export function Hero() {
         alt=""
         fill
         priority
-        className="object-cover object-center opacity-40"
+        className="object-cover object-center"
         sizes="100vw"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/85 to-carbon/40" />
-      <div className="absolute inset-0 bg-gradient-to-r from-carbon via-transparent to-carbon/60" />
+      <div
+        className="absolute inset-0 bg-gradient-to-t from-carbon/90 via-carbon/35 to-carbon/15"
+        aria-hidden
+      />
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-carbon/50 via-transparent to-carbon/40"
+        aria-hidden
+      />
 
       <div className="section-shell relative flex min-h-[85vh] flex-col justify-center py-16">
         <p className="section-kicker">{EVENT.registrationFreeLabel}</p>

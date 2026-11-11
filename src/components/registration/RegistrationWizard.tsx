@@ -7,23 +7,24 @@ import { RegistrationReview } from "@/components/registration/RegistrationReview
 import { FormField, inputClassName, selectClassName } from "@/components/ui/FormField";
 import { ageAtEventDate } from "@/lib/age";
 import {
-  BICYCLE_TYPES_BY_CATEGORY,
   BLOOD_TYPES,
   CATEGORIES,
   COLOMBIAN_DEPARTMENTS,
   DOCUMENT_TYPES,
   EVENT,
+  JERSEY_DESIGNS,
   JERSEY_SIZES,
   NATIONALITIES,
-  REGISTRATION_DEV_MESSAGE,
+  REGISTRATION_SUBMIT_ERROR,
+  REGISTRATION_SUBMIT_SUCCESS,
   UPLOAD,
-  type CategoryId,
 } from "@/lib/config/event";
 import {
   inscriptionHref,
   isValidCategoryId,
   parseInscriptionParams,
 } from "@/lib/navigation/inscriptionLinks";
+import { toRegistrationPayloadJson } from "@/lib/registration/serializeRegistrationPayload";
 import { getVisibleSteps } from "@/lib/registration/visibleSteps";
 import {
   defaultRegistrationValues,
@@ -40,7 +41,8 @@ export function RegistrationWizard() {
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<keyof RegistrationFormValues, string>>
   >({});
-  const [devMessage, setDevMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const form = useForm<RegistrationFormValues>({
     defaultValues: defaultRegistrationValues,
@@ -59,7 +61,7 @@ export function RegistrationWizard() {
 
     if (isValidCategoryId(categoria)) {
       form.setValue("category", categoria);
-      setStep(2);
+      setStep(1);
     }
     if (jersey) {
       form.setValue("registrationOption", "free_with_jersey");
@@ -90,18 +92,6 @@ export function RegistrationWizard() {
 
   const ageAtEvent = ageAtEventDate(values.birthDate);
 
-  const bicycleOptions = useMemo(() => {
-    const cat = values.category as CategoryId;
-    if (!cat) return [];
-    return BICYCLE_TYPES_BY_CATEGORY[cat] ?? [];
-  }, [values.category]);
-
-  useEffect(() => {
-    if (values.bicycleType && !bicycleOptions.includes(values.bicycleType)) {
-      form.setValue("bicycleType", "");
-    }
-  }, [bicycleOptions, form, values.bicycleType]);
-
   const setErrors = useCallback(
     (errors: Partial<Record<keyof RegistrationFormValues, string>>) => {
       setFieldErrors(errors);
@@ -122,10 +112,12 @@ export function RegistrationWizard() {
 
   const goNext = () => {
     clearErrors();
-    const result = validateRegistrationStep(step, values);
-    if (!result.success) {
-      setErrors(result.errors);
-      return;
+    if (EVENT.registrationStepValidationEnabled) {
+      const result = validateRegistrationStep(step, values);
+      if (!result.success) {
+        setErrors(result.errors);
+        return;
+      }
     }
     const idx = visibleSteps.indexOf(step);
     if (idx < visibleSteps.length - 1) setStep(visibleSteps[idx + 1]);
@@ -137,19 +129,46 @@ export function RegistrationWizard() {
     if (idx > 0) setStep(visibleSteps[idx - 1]);
   };
 
-  const onAttemptConfirm = (event: React.FormEvent) => {
+  const onAttemptConfirm = async (event: React.FormEvent) => {
     event.preventDefault();
     clearErrors();
-    for (const s of visibleSteps) {
-      if (s === 9) continue;
-      const check = validateRegistrationStep(s, values);
-      if (!check.success) {
-        setErrors(check.errors);
-        setStep(s);
-        return;
+    setStatusMessage(null);
+    if (EVENT.registrationStepValidationEnabled) {
+      for (const s of visibleSteps) {
+        if (s === 9) continue;
+        const check = validateRegistrationStep(s, values);
+        if (!check.success) {
+          setErrors(check.errors);
+          setStep(s);
+          return;
+        }
       }
     }
-    setDevMessage(REGISTRATION_DEV_MESSAGE);
+
+    setSubmitting(true);
+    try {
+      const body = new FormData();
+      body.append("payload", JSON.stringify(toRegistrationPayloadJson(values)));
+      const receipt = values.paymentReceipt?.[0];
+      if (receipt) body.append("paymentReceipt", receipt);
+      const guardian = values.guardianAuthorization?.[0];
+      if (guardian) body.append("guardianAuthorization", guardian);
+
+      const response = await fetch("/api/registrations/notify", {
+        method: "POST",
+        body,
+      });
+
+      if (!response.ok) {
+        setStatusMessage(REGISTRATION_SUBMIT_ERROR);
+        return;
+      }
+      setStatusMessage(REGISTRATION_SUBMIT_SUCCESS);
+    } catch {
+      setStatusMessage(REGISTRATION_SUBMIT_ERROR);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const copyNequi = () => {
@@ -246,58 +265,30 @@ export function RegistrationWizard() {
                 <FormField id="clubOrTeam" label="Club o equipo" className="sm:col-span-2">
                   <input id="clubOrTeam" className={inputClassName} {...register("clubOrTeam")} />
                 </FormField>
+                <FormField id="category" label="Categoria" required error={err("category")}>
+                  <select id="category" className={selectClassName} {...register("category")}>
+                    <option value="">Seleccione</option>
+                    {CATEGORIES.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
               </div>
-            </FormStep>
-          )}
-
-          {step === 2 && (
-            <FormStep title="Categoria y bicicleta">
-              <FormField id="category" label="Categoria" required error={err("category")}>
-                <select id="category" className={selectClassName} {...register("category")}>
-                  <option value="">Seleccione</option>
-                  {CATEGORIES.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.title}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
-              <FormField id="bicycleType" label="Tipo bicicleta" required error={err("bicycleType")}>
-                <select
-                  id="bicycleType"
-                  className={selectClassName}
-                  disabled={bicycleOptions.length === 0}
-                  {...register("bicycleType")}
-                >
-                  <option value="">
-                    {bicycleOptions.length === 0 ? "Pendiente configuracion admin" : "Seleccione"}
-                  </option>
-                  {bicycleOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
             </FormStep>
           )}
 
           {step === 3 && (
             <FormStep title="Informacion de salud">
               <p className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-muted">
-                Datos sensibles para emergencia. Uso segun autorizaciones legales.
+                Esta informacion es sensible y se usa para atencion en emergencia. No se mostrara en el resumen
+                publico. El texto de autorizacion esta sujeto a validacion juridica antes de inscripciones reales.
               </p>
-              <label className="flex gap-3 text-sm text-white">
-                <input type="checkbox" className="focus-ring mt-1" {...register("healthNoticeAccepted")} />
-                <span>
-                  He leido el aviso <span className="text-epic-orange">*</span>
-                </span>
-              </label>
-              {err("healthNoticeAccepted") ? <p className="text-sm text-red-400">{err("healthNoticeAccepted")}</p> : null}
-              <FormField id="eps" label="EPS">
+              <FormField id="eps" label="EPS" required error={err("eps")}>
                 <input id="eps" className={inputClassName} {...register("eps")} />
               </FormField>
-              <FormField id="bloodType" label="Grupo sanguineo">
+              <FormField id="bloodType" label="Grupo sanguineo" required error={err("bloodType")}>
                 <select id="bloodType" className={selectClassName} {...register("bloodType")}>
                   <option value="">Seleccione</option>
                   {BLOOD_TYPES.map((bt) => (
@@ -307,9 +298,53 @@ export function RegistrationWizard() {
                   ))}
                 </select>
               </FormField>
-              <YesNoBlock label="Condicion de salud" value={values.hasHealthCondition} name="hasHealthCondition" detailName="healthConditionDetail" register={register} err={err} />
-              <YesNoBlock label="Alergias" value={values.hasAllergies} name="hasAllergies" detailName="allergiesDetail" register={register} err={err} />
-              <YesNoBlock label="Medicamentos" value={values.takesMedication} name="takesMedication" detailName="medicationDetail" register={register} err={err} />
+              <YesNoBlock
+                label="Condicion de salud"
+                required
+                value={values.hasHealthCondition}
+                name="hasHealthCondition"
+                detailName="healthConditionDetail"
+                register={register}
+                err={err}
+              />
+              <YesNoBlock
+                label="Alergias"
+                required
+                value={values.hasAllergies}
+                name="hasAllergies"
+                detailName="allergiesDetail"
+                register={register}
+                err={err}
+              />
+              <YesNoBlock
+                label="Medicamentos"
+                required
+                value={values.takesMedication}
+                name="takesMedication"
+                detailName="medicationDetail"
+                register={register}
+                err={err}
+              />
+              <div>
+                <label htmlFor="authorizeHealthData" className="flex cursor-pointer gap-3 text-sm text-white">
+                  <input
+                    id="authorizeHealthData"
+                    type="checkbox"
+                    className="focus-ring mt-1 h-5 w-5 shrink-0 rounded border-white/20 bg-carbon text-epic-orange"
+                    {...register("authorizeHealthData")}
+                  />
+                  <span>
+                    Autorizo expresamente el tratamiento de mis datos de salud para emergencia durante el evento
+                    (sujeto a texto definitivo aprobado por la organizacion).
+                    <span className="text-epic-orange"> *</span>
+                  </span>
+                </label>
+                {err("authorizeHealthData") ? (
+                  <p className="mt-1 text-sm text-red-400" role="alert">
+                    {err("authorizeHealthData")}
+                  </p>
+                ) : null}
+              </div>
             </FormStep>
           )}
 
@@ -344,13 +379,23 @@ export function RegistrationWizard() {
                   active={values.registrationOption === "free_with_jersey"}
                   title="Opcion B - Con jersey"
                   price={EVENT.jerseyPriceLabel}
-                  description="Jersey naranja oficial"
+                  description="Jersey naranja: Niebla o Ciudad"
                   onSelect={() => form.setValue("registrationOption", "free_with_jersey")}
                 />
               </div>
               {err("registrationOption") ? <p className="text-sm text-red-400">{err("registrationOption")}</p> : null}
               {values.registrationOption === "free_with_jersey" && (
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <FormField id="jerseyDesign" label="Diseno del jersey" required error={err("jerseyDesign")}>
+                    <select id="jerseyDesign" className={selectClassName} {...register("jerseyDesign")}>
+                      <option value="">Seleccione</option>
+                      {JERSEY_DESIGNS.map((d) => (
+                        <option key={d.value} value={d.value}>
+                          {d.label}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
                   <FormField id="jerseySize" label="Talla" required error={err("jerseySize")}>
                     <select id="jerseySize" className={selectClassName} {...register("jerseySize")}>
                       <option value="">Seleccione</option>
@@ -383,21 +428,19 @@ export function RegistrationWizard() {
           {step === 6 && (
             <FormStep title="Pago del jersey">
               <p className="text-sm">
-                Valor: {EVENT.jerseyPriceLabel}. Nequi: {EVENT.paymentNequi}. Beneficiario: {EVENT.paymentBeneficiary}
+                Valor: {EVENT.jerseyPriceLabel}. {EVENT.paymentMethodsLabel}:{" "}
+                <span className="font-semibold text-white">{EVENT.paymentKeyDisplay}</span>
               </p>
+              {!EVENT.paymentDestinationConfirmed ? (
+                <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-100">
+                  La informacion del destino de pago esta pendiente de confirmacion oficial. Verifique con la
+                  organizacion antes de transferir.
+                </p>
+              ) : null}
               <button type="button" onClick={copyNequi} className="focus-ring rounded-lg border border-epic-orange/40 px-4 py-2 text-sm">
-                Copiar numero Nequi
+                Copiar numero ({EVENT.paymentMethodsLabel})
               </button>
-              <FormField id="payerName" label="Quien pago" required error={err("payerName")}>
-                <input id="payerName" className={inputClassName} {...register("payerName")} />
-              </FormField>
-              <FormField id="paymentDate" label="Fecha pago" required error={err("paymentDate")}>
-                <input id="paymentDate" type="date" className={inputClassName} {...register("paymentDate")} />
-              </FormField>
-              <FormField id="paymentReference" label="Referencia" required error={err("paymentReference")}>
-                <input id="paymentReference" className={inputClassName} {...register("paymentReference")} />
-              </FormField>
-              <FormField id="paymentReceipt" label="Comprobante" required error={err("paymentReceipt")}>
+              <FormField id="paymentReceipt" label="Comprobante (JPG, PNG o PDF)" required error={err("paymentReceipt")}>
                 <input id="paymentReceipt" type="file" accept={UPLOAD.accept} className={inputClassName} {...register("paymentReceipt")} />
               </FormField>
             </FormStep>
@@ -414,14 +457,14 @@ export function RegistrationWizard() {
           )}
 
           {step === 8 && (
-            <FormStep title="Aceptaciones">
+            <FormStep title="Aceptaciones legales">
               <LegalAcceptance register={register} getError={err} />
             </FormStep>
           )}
 
           {step === 9 && (
-            <FormStep title="Revision">
-              <RegistrationReview values={values} devMessage={devMessage} />
+            <FormStep title="Revision y confirmacion">
+              <RegistrationReview values={values} devMessage={statusMessage} />
             </FormStep>
           )}
 
@@ -434,12 +477,18 @@ export function RegistrationWizard() {
                 Siguiente
               </button>
             ) : (
-              <button type="submit" className="focus-ring rounded-full bg-epic-orange px-8 py-3 text-sm font-bold uppercase text-white">
-                Confirmar inscripcion gratuita
+              <button
+                type="submit"
+                disabled={submitting}
+                className="focus-ring rounded-full bg-epic-orange px-8 py-3 text-sm font-bold uppercase text-white disabled:opacity-60"
+              >
+                {submitting ? "Enviando..." : "Confirmar inscripcion gratuita"}
               </button>
             )}
           </div>
-          {devMessage ? <p className="text-center text-sm text-epic-orange-light">{devMessage}</p> : null}
+          {statusMessage ? (
+            <p className="text-center text-sm text-epic-orange-light">{statusMessage}</p>
+          ) : null}
         </form>
       </div>
     </section>
@@ -453,6 +502,7 @@ function YesNoBlock({
   detailName,
   register,
   err,
+  required,
 }: {
   label: string;
   name: keyof RegistrationFormValues;
@@ -460,10 +510,15 @@ function YesNoBlock({
   detailName: keyof RegistrationFormValues;
   register: UseFormRegister<RegistrationFormValues>;
   err: (n: keyof RegistrationFormValues) => string | undefined;
+  required?: boolean;
 }) {
+  const choiceError = err(name);
   return (
     <div className="space-y-3 rounded-xl border border-white/10 p-4">
-      <p className="text-sm font-medium text-white">{label}</p>
+      <p className="text-sm font-medium text-white">
+        {label}
+        {required ? <span className="text-epic-orange"> *</span> : null}
+      </p>
       <div className="flex gap-4 text-sm text-white">
         <label className="flex items-center gap-2">
           <input type="radio" value="yes" {...register(name)} /> Si
@@ -472,8 +527,9 @@ function YesNoBlock({
           <input type="radio" value="no" {...register(name)} /> No
         </label>
       </div>
+      {choiceError ? <p className="text-sm text-red-400">{choiceError}</p> : null}
       {value === "yes" && (
-        <FormField id={String(detailName)} label="Descripcion" error={err(detailName)}>
+        <FormField id={String(detailName)} label="Descripcion" required error={err(detailName)}>
           <textarea id={String(detailName)} rows={3} className={inputClassName} {...register(detailName)} />
         </FormField>
       )}

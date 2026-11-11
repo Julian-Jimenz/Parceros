@@ -1,7 +1,7 @@
 const pillars = [
   {
     title: "Competencia y desafio",
-    text: "Una experiencia para quienes buscan superar sus limites en la montana.",
+    text: "Una experiencia para quienes buscan superar sus l\u00EDmites en la monta\u00F1a.",
   },
   {
     title: "Experiencia deportiva",
@@ -23,7 +23,7 @@ export function EventOverview() {
       <div className="section-shell">
         <p className="section-kicker">Sobre el evento</p>
         <h2 id="evento-title" className="section-title mt-3">
-          LA MONTANA TE ESPERA
+          {"LA MONTA\u00D1A TE ESPERA"}
         </h2>
         <p className="mt-6 max-w-3xl text-lg text-muted">
           Manizales Epic Race reunira a la comunidad ciclista. Distancias, horarios, premios y

@@ -1,13 +1,13 @@
-# Base de datos — Manizales Epic Race 2026
+# Base de datos â€” Manizales Epic Race 2026
 
 ## Requisitos
 
 - PostgreSQL 14+ (detectado: **16** en este equipo)
-- Usuario con permiso `CREATEDB` (típicamente `postgres`)
+- Usuario con permiso `CREATEDB` (tÃ­picamente `postgres`)
 
-## Creación automática (Windows)
+## CreaciÃ³n automÃ¡tica (Windows)
 
-Desde PowerShell, en la raíz del proyecto:
+Desde PowerShell, en la raÃ­z del proyecto:
 
 ```powershell
 cd database\scripts
@@ -16,7 +16,15 @@ cd database\scripts
 
 Esto crea la base `manizales_epic_race_2026`, aplica `migrations/001_initial_schema.sql` y `seed/001_reference_data.sql`.
 
-## Creación manual
+**Migraciones incrementales (Fase 3B-2):** aplicar en orden **despuÃ©s** del seed, solo cuando estÃ© autorizado:
+
+1. `migrations/002_quota_enforcement.sql`
+2. `migrations/003_registration_number.sql`
+3. `migrations/004_integrity_admin_health_legal.sql`
+
+El script `create-database.ps1` **no** aplica 002+ automÃ¡ticamente (pendiente actualizaciÃ³n en fase 3B-3).
+
+## CreaciÃ³n manual
 
 ```powershell
 $env:PGPASSWORD = "TU_CLAVE"
@@ -25,7 +33,15 @@ $env:PGPASSWORD = "TU_CLAVE"
 & "C:\Program Files\PostgreSQL\16\bin\psql.exe" -U postgres -d manizales_epic_race_2026 -f database\seed\001_reference_data.sql
 ```
 
-## Verificación
+Luego, cuando estï¿½ autorizado:
+
+```powershell
+& "C:\Program Files\PostgreSQL\16\bin\psql.exe" -U postgres -d manizales_epic_race_2026 -f database\migrations\002_quota_enforcement.sql
+& "C:\Program Files\PostgreSQL\16\bin\psql.exe" -U postgres -d manizales_epic_race_2026 -f database\migrations\003_registration_number.sql
+& "C:\Program Files\PostgreSQL\16\bin\psql.exe" -U postgres -d manizales_epic_race_2026 -f database\migrations\004_integrity_admin_health_legal.sql
+```
+
+## Verificaciï¿½n
 
 ```sql
 SELECT event_name, event_date, max_confirmed_registrations FROM event_settings;
@@ -34,7 +50,21 @@ SELECT code, name FROM categories ORDER BY sort_order;
 
 ## Antes de abrir inscripciones
 
-1. Configurar `category_bicycle_rules` (matriz categoría ? tipo de bicicleta).
+1. Configurar `category_bicycle_rules` (matriz categorï¿½a ? tipo de bicicleta).
 2. Publicar versiones legales en `legal_documents` (`is_published = true`).
 3. Cargar tabla de tallas en `jersey_size_measurements`.
-4. Activar `registrations_open` solo tras pruebas y validación legal.
+4. Activar `registrations_open` solo tras pruebas y validaciï¿½n legal.
+
+## Pruebas preparadas (no ejecutadas en 3B-2)
+
+- `tests/prepared_concurrency_quota.sql` ï¿½ escenarios de cupo, numeraciï¿½n e idempotencia (Fase 3B-5).
+
+## Compatibilidad con el formulario (9 pasos)
+
+| Frontend | Tabla / columna |
+|----------|-----------------|
+| `bicycleType` (cï¿½digo) | `bicycle_types.code` + `category_bicycle_rules` |
+| Salud + `authorizeHealthData` | `health_information.*`, `sensitive_data_authorized` |
+| Pago jersey | `jersey_payments`: `payer_name`, `payment_date`, `transaction_reference`, `receipt_file_id` |
+| Legales (si publicados) | `legal_acceptances` + trigger `LEGAL_DOCUMENT_NOT_PUBLISHED` |
+| Confirmaciï¿½n | `registrations.status = confirmed`, `registration_number`, cupo en trigger |

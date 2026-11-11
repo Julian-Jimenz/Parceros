@@ -1,3 +1,5 @@
+import { EVENT } from "@/lib/config/event";
+
 const items = [
   {
     title: "Inscripcion",
@@ -5,7 +7,7 @@ const items = [
   },
   {
     title: "Jersey opcional",
-    body: "Pago manual Nequi. Comprobante en revision; no confirma pago automaticamente.",
+    body: `Pago manual por ${EVENT.paymentMethodsLabel} al ${EVENT.paymentKeyDisplay}. Comprobante en revision; no confirma pago automaticamente.`,
   },
   {
     title: "Informacion del evento",

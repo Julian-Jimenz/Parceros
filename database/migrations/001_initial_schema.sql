@@ -1,4 +1,4 @@
--- Manizales Epic Race 2026 ù esquema inicial
+-- Manizales Epic Race 2026 ÔøΩ esquema inicial
 -- PostgreSQL 14+
 -- Ejecutar sobre base de datos: manizales_epic_race_2026
 
@@ -34,7 +34,7 @@ CREATE TYPE registration_option AS ENUM (
 CREATE TYPE sleeve_type AS ENUM ('short', 'long');
 CREATE TYPE jersey_cut AS ENUM ('road', 'mtb');
 
--- Configuraciùn del evento (fila singleton id=1)
+-- ConfiguraciÔøΩn del evento (fila singleton id=1)
 CREATE TABLE event_settings (
   id                          SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
   event_name                  TEXT NOT NULL DEFAULT 'MANIZALES EPIC RACE 2026',
@@ -47,7 +47,7 @@ CREATE TABLE event_settings (
   jersey_price_cop            INTEGER NOT NULL DEFAULT 110000 CHECK (jersey_price_cop >= 0),
   minors_registration_enabled BOOLEAN NOT NULL DEFAULT FALSE,
   minor_minimum_age           SMALLINT,
-  payment_nequi_key           TEXT NOT NULL DEFAULT '3013361008',
+  payment_nequi_key           TEXT NOT NULL DEFAULT '3013131008',
   payment_beneficiary         TEXT NOT NULL DEFAULT 'David Plata',
   upload_max_bytes            BIGINT NOT NULL DEFAULT 5242880,
   allowed_upload_mime         TEXT[] NOT NULL DEFAULT ARRAY['image/jpeg','image/png','application/pdf'],
@@ -301,13 +301,13 @@ CREATE TABLE export_logs (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Integridad categorùa + bicicleta
+-- Integridad categorÔøΩa + bicicleta
 ALTER TABLE registrations ADD CONSTRAINT fk_registration_bicycle_rule
   FOREIGN KEY (category_id, bicycle_type_id)
   REFERENCES category_bicycle_rules(category_id, bicycle_type_id)
   DEFERRABLE INITIALLY DEFERRED;
 
--- Funciùn: contar inscripciones confirmadas
+-- FunciÔøΩn: contar inscripciones confirmadas
 CREATE OR REPLACE FUNCTION count_confirmed_registrations()
 RETURNS INTEGER
 LANGUAGE sql
@@ -316,7 +316,7 @@ AS $$
   SELECT COUNT(*)::INTEGER FROM registrations WHERE status = 'confirmed';
 $$;
 
--- Funciùn: reservar cupo y confirmar (invocada desde aplicaciùn en transacciùn)
+-- FunciÔøΩn: reservar cupo y confirmar (invocada desde aplicaciÔøΩn en transacciÔøΩn)
 CREATE OR REPLACE FUNCTION assert_registration_quota()
 RETURNS VOID
 LANGUAGE plpgsql

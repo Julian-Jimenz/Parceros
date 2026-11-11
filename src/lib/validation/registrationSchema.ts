@@ -1,9 +1,4 @@
-import {
-  BICYCLE_TYPES_BY_CATEGORY,
-  EVENT,
-  UPLOAD,
-  type CategoryId,
-} from "@/lib/config/event";
+import { EVENT, UPLOAD } from "@/lib/config/event";
 import { ageAtEventDate, isAdultAtEvent } from "@/lib/age";
 import { z } from "zod";
 
@@ -32,23 +27,22 @@ export type RegistrationFormValues = {
   email: string;
   clubOrTeam?: string;
   category: string;
-  bicycleType?: string;
-  healthNoticeAccepted: boolean;
-  eps?: string;
-  bloodType?: string;
-  hasHealthCondition?: "yes" | "no" | "";
+  eps: string;
+  bloodType: string;
+  hasHealthCondition: "yes" | "no" | "";
   healthConditionDetail?: string;
-  hasAllergies?: "yes" | "no" | "";
+  hasAllergies: "yes" | "no" | "";
   allergiesDetail?: string;
-  takesMedication?: "yes" | "no" | "";
+  takesMedication: "yes" | "no" | "";
   medicationDetail?: string;
-  authorizeHealthData?: boolean;
+  authorizeHealthData: boolean;
   emergencyName: string;
   emergencyRelationship: string;
   emergencyPhone: string;
   emergencyPhoneSecondary?: string;
   registrationOption: "free_only" | "free_with_jersey" | "";
   jerseySize?: string;
+  jerseyDesign?: "niebla" | "ciudad" | "";
   jerseySleeve?: "short" | "long" | "";
   jerseyCut?: "road" | "mtb" | "";
   payerName?: string;
@@ -85,8 +79,6 @@ export const defaultRegistrationValues: RegistrationFormValues = {
   email: "",
   clubOrTeam: "",
   category: "",
-  bicycleType: "",
-  healthNoticeAccepted: false,
   eps: "",
   bloodType: "",
   hasHealthCondition: "",
@@ -102,6 +94,7 @@ export const defaultRegistrationValues: RegistrationFormValues = {
   emergencyPhoneSecondary: "",
   registrationOption: "",
   jerseySize: "",
+  jerseyDesign: "",
   jerseySleeve: "",
   jerseyCut: "",
   payerName: "",
@@ -158,6 +151,23 @@ function validateFileField(
   }
 }
 
+function validateYesNo(
+  value: "yes" | "no" | "" | undefined,
+  field: keyof RegistrationFormValues,
+  detail: string | undefined,
+  detailField: keyof RegistrationFormValues,
+  label: string,
+  errors: Partial<Record<keyof RegistrationFormValues, string>>,
+) {
+  if (value !== "yes" && value !== "no") {
+    errors[field] = `Indica si tienes ${label}.`;
+    return;
+  }
+  if (value === "yes" && !detail?.trim()) {
+    errors[detailField] = "Describe el detalle.";
+  }
+}
+
 export function validateRegistrationStep(
   step: number,
   data: RegistrationFormValues,
@@ -192,36 +202,41 @@ export function validateRegistrationStep(
     if (!data.residenceAddress.trim()) errors.residenceAddress = "Ingresa la direccion.";
     validatePhoneField(data.phone, "phone", errors, "Ingresa el celular.");
     validateEmailField(data.email, errors);
-  }
-
-  if (step === 2) {
-    const parsed = categoryEnum.safeParse(data.category);
-    if (!parsed.success) errors.category = "Selecciona una categoria.";
-    else {
-      const types = BICYCLE_TYPES_BY_CATEGORY[parsed.data as CategoryId] ?? [];
-      if (types.length === 0) {
-        errors.bicycleType =
-          "Los tipos de bicicleta se configurar\u00E1n pr\u00F3ximamente en administraci\u00F3n.";
-      } else if (!data.bicycleType) {
-        errors.bicycleType = "Selecciona el tipo de bicicleta.";
-      } else if (!types.includes(data.bicycleType)) {
-        errors.bicycleType = "Tipo de bicicleta no permitido para la categoria.";
-      }
+    if (!categoryEnum.safeParse(data.category).success) {
+      errors.category = "Selecciona una categoria.";
     }
   }
 
   if (step === 3) {
-    if (!data.healthNoticeAccepted) {
-      errors.healthNoticeAccepted = "Confirma el aviso de datos de salud.";
-    }
-    if (data.hasHealthCondition === "yes" && !data.healthConditionDetail?.trim()) {
-      errors.healthConditionDetail = "Describe la condicion.";
-    }
-    if (data.hasAllergies === "yes" && !data.allergiesDetail?.trim()) {
-      errors.allergiesDetail = "Describe las alergias.";
-    }
-    if (data.takesMedication === "yes" && !data.medicationDetail?.trim()) {
-      errors.medicationDetail = "Describe los medicamentos.";
+    if (!data.eps?.trim()) errors.eps = "Ingresa tu EPS.";
+    if (!data.bloodType) errors.bloodType = "Selecciona el grupo sanguineo.";
+    validateYesNo(
+      data.hasHealthCondition,
+      "hasHealthCondition",
+      data.healthConditionDetail,
+      "healthConditionDetail",
+      "condicion de salud",
+      errors,
+    );
+    validateYesNo(
+      data.hasAllergies,
+      "hasAllergies",
+      data.allergiesDetail,
+      "allergiesDetail",
+      "alergias",
+      errors,
+    );
+    validateYesNo(
+      data.takesMedication,
+      "takesMedication",
+      data.medicationDetail,
+      "medicationDetail",
+      "medicamentos",
+      errors,
+    );
+    if (!data.authorizeHealthData) {
+      errors.authorizeHealthData =
+        "Debes autorizar el tratamiento de datos de salud para emergencia (texto sujeto a validacion juridica).";
     }
   }
 
@@ -239,6 +254,7 @@ export function validateRegistrationStep(
       errors.registrationOption = "Selecciona la modalidad.";
     }
     if (data.registrationOption === "free_with_jersey") {
+      if (!data.jerseyDesign) errors.jerseyDesign = "Selecciona el diseno del jersey.";
       if (!data.jerseySize) errors.jerseySize = "Selecciona la talla.";
       if (!data.jerseySleeve) errors.jerseySleeve = "Selecciona la manga.";
       if (!data.jerseyCut) errors.jerseyCut = "Selecciona el corte.";
@@ -246,9 +262,6 @@ export function validateRegistrationStep(
   }
 
   if (step === 6 && data.registrationOption === "free_with_jersey") {
-    if (!data.payerName?.trim()) errors.payerName = "Ingresa quien pago.";
-    if (!data.paymentDate) errors.paymentDate = "Ingresa la fecha del pago.";
-    if (!data.paymentReference?.trim()) errors.paymentReference = "Ingresa la referencia.";
     validateFileField(data.paymentReceipt?.[0], "paymentReceipt", errors, true);
   }
 
@@ -264,7 +277,7 @@ export function validateRegistrationStep(
     validateFileField(data.guardianAuthorization?.[0], "guardianAuthorization", errors, true);
   }
 
-  if (step === 8) {
+  if (step === 8 && EVENT.legalDocumentsPublished) {
     if (!data.infoCorrect) errors.infoCorrect = "Confirma que la informacion es correcta.";
     if (!data.acceptRegulation) errors.acceptRegulation = "Acepta el reglamento.";
     if (!data.acceptRiskWaiver) errors.acceptRiskWaiver = "Acepta la declaracion de riesgos.";

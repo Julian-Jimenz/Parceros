@@ -10,10 +10,19 @@ export const EVENT = {
   countdownTargetIso: "2026-12-13T00:00:00-05:00",
   jerseyPriceCop: 110_000,
   jerseyPriceLabel: "$110.000 COP",
-  paymentNequi: "3013361008",
+  /** D\u00EDgitos para copiar al portapapeles (Nequi / Llave). */
+  paymentNequi: "3013131008",
+  paymentKeyDisplay: "301 3131008",
+  paymentMethodsLabel: "Nequi y Llave",
   paymentBeneficiary: "David Plata",
+  /** Destino de pago en UI; pendiente confirmaci\u00F3n oficial de la organizaci\u00F3n. */
+  paymentDestinationConfirmed: false,
   registrationFreeLabel: "INSCRIPCI\u00D3N GRATUITA",
   minorsEnabled: false,
+  /** Textos legales publicados y aprobados (habilita validaci\u00F3n estricta en paso 8). */
+  legalDocumentsPublished: false,
+  /** Validar campos al usar Siguiente / Confirmar (desactivado mientras se prueba el flujo). */
+  registrationStepValidationEnabled: false,
 } as const;
 
 export type CategoryId =
@@ -56,6 +65,20 @@ export const BICYCLE_TYPES_BY_CATEGORY: Record<CategoryId, string[]> = {
   "recreativa-mujeres": [],
 };
 
+export const BICYCLE_MATRIX_PENDING_MESSAGE =
+  "Los tipos de bicicleta permitidos est\u00E1n pendientes de confirmaci\u00F3n por la organizaci\u00F3n.";
+
+export function bicycleTypesForCategory(category: CategoryId | ""): string[] {
+  if (!category) return [];
+  return [...(BICYCLE_TYPES_BY_CATEGORY[category] ?? [])];
+}
+
+export function isBicycleMatrixConfigured(): boolean {
+  return (Object.keys(BICYCLE_TYPES_BY_CATEGORY) as CategoryId[]).some(
+    (id) => BICYCLE_TYPES_BY_CATEGORY[id].length > 0,
+  );
+}
+
 export const DOCUMENT_TYPES = [
   { value: "CC", label: "C\u00E9dula de ciudadan\u00EDa" },
   { value: "CE", label: "C\u00E9dula de extranjer\u00EDa" },
@@ -82,6 +105,17 @@ export const BLOOD_TYPES = [
 
 export const JERSEY_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
 
+export const JERSEY_DESIGNS = [
+  { value: "niebla", label: "Niebla" },
+  { value: "ciudad", label: "Ciudad" },
+] as const;
+
+export type JerseyDesignId = (typeof JERSEY_DESIGNS)[number]["value"];
+
+export function jerseyDesignLabel(design: string): string {
+  return JERSEY_DESIGNS.find((d) => d.value === design)?.label ?? "-";
+}
+
 export const UPLOAD = {
   maxBytes: 5 * 1024 * 1024,
   mimeTypes: ["image/jpeg", "image/png", "application/pdf"],
@@ -90,18 +124,20 @@ export const UPLOAD = {
 
 export const FORM_STEPS = [
   { id: 1, title: "Datos personales" },
-  { id: 2, title: "Categor\u00EDa" },
   { id: 3, title: "Salud" },
   { id: 4, title: "Emergencia" },
   { id: 5, title: "Inscripci\u00F3n y jersey" },
   { id: 6, title: "Pago jersey" },
   { id: 7, title: "Representante legal" },
-  { id: 8, title: "Aceptaciones" },
+  { id: 8, title: "Aceptaciones legales" },
   { id: 9, title: "Revisi\u00F3n" },
 ] as const;
 
-export const REGISTRATION_DEV_MESSAGE =
-  "Formulario en desarrollo. Las inscripciones a\u00FAn no est\u00E1n habilitadas.";
+export const REGISTRATION_SUBMIT_SUCCESS =
+  "Recibimos tu solicitud. La organizacion revisara los datos y te contactara si es necesario.";
+
+export const REGISTRATION_SUBMIT_ERROR =
+  "No pudimos enviar tu inscripcion en este momento. Intenta de nuevo o escribe a la organizacion.";
 
 export const COLOMBIAN_DEPARTMENTS = [
   "Amazonas",
