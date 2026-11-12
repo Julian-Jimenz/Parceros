@@ -1,5 +1,5 @@
 import { EVENT } from "@/lib/config/event";
-import { inscriptionHref } from "@/lib/navigation/inscriptionLinks";
+import { INSCRIPTION_SECTION_HREF } from "@/lib/navigation/inscriptionLinks";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -42,7 +42,7 @@ export function Hero() {
 
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           <Link
-            href={inscriptionHref()}
+            href={INSCRIPTION_SECTION_HREF}
             className="focus-ring inline-flex min-h-11 items-center justify-center rounded-full bg-epic-orange px-8 py-4 text-center text-sm font-bold uppercase tracking-wide text-white transition hover:bg-epic-orange-light"
           >
             {`Inscr\u00EDbete ahora`}

@@ -5,13 +5,16 @@ type InscriptionParams = {
   jersey?: boolean;
 };
 
-/** Query en URL real (?categoria=) + ancla; compatible con recarga y useSearchParams. */
+/** Ancla del formulario (solo al hacer clic en Inscribete, no al cargar la home). */
+export const INSCRIPTION_SECTION_HREF = "#inscripcion";
+
+/** Parametros de prellenado sin ancla: al entrar a la home no salta al formulario. */
 export function inscriptionHref(params?: InscriptionParams): string {
   const qs = new URLSearchParams();
   if (params?.categoria) qs.set("categoria", params.categoria);
   if (params?.jersey) qs.set("jersey", "1");
   const query = qs.toString();
-  return query ? `/?${query}#inscripcion` : "/#inscripcion";
+  return query ? `/?${query}` : "/";
 }
 
 export function parseInscriptionParams(

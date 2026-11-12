@@ -1,5 +1,5 @@
 import { EVENT } from "@/lib/config/event";
-import { inscriptionHref } from "@/lib/navigation/inscriptionLinks";
+import { INSCRIPTION_SECTION_HREF } from "@/lib/navigation/inscriptionLinks";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -29,7 +29,7 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <Link href={inscriptionHref()} className="focus-ring hover:text-white">
+              <Link href={INSCRIPTION_SECTION_HREF} className="focus-ring hover:text-white">
                 {`Inscripci\u00F3n`}
               </Link>
             </li>

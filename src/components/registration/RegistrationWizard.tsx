@@ -67,18 +67,13 @@ export function RegistrationWizard() {
       form.setValue("registrationOption", "free_with_jersey");
     }
 
-    if (hash.startsWith("#inscripcion?")) {
+    if (hash.startsWith("#inscripcion")) {
       const normalized = inscriptionHref({
         categoria: isValidCategoryId(categoria) ? categoria : undefined,
         jersey: jersey || undefined,
       });
       window.history.replaceState(null, "", normalized);
-    }
-
-    if (categoria || jersey) {
-      requestAnimationFrame(() => {
-        document.getElementById("inscripcion")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
+      window.scrollTo(0, 0);
     }
   }, [form, searchParams]);
 

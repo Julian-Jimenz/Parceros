@@ -18,7 +18,9 @@ export function CategoryCards() {
             >
               <div>
                 <h3 className="font-display text-3xl text-white">{cat.title}</h3>
-                <p className="mt-3 text-sm text-muted">{cat.description}</p>
+                {cat.description ? (
+                  <p className="mt-3 text-sm text-muted">{cat.description}</p>
+                ) : null}
               </div>
               <Link
                 href={inscriptionHref({ categoria: cat.id })}

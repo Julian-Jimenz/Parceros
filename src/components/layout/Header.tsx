@@ -1,6 +1,6 @@
 "use client";
 
-import { inscriptionHref } from "@/lib/navigation/inscriptionLinks";
+import { INSCRIPTION_SECTION_HREF } from "@/lib/navigation/inscriptionLinks";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -50,7 +50,7 @@ export function Header() {
           ))}
         </nav>
         <Link
-          href={inscriptionHref()}
+          href={INSCRIPTION_SECTION_HREF}
           className="focus-ring hidden min-h-11 items-center rounded-full bg-epic-orange px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-epic-orange-light md:inline-flex"
         >
           Inscribete
@@ -82,7 +82,7 @@ export function Header() {
               </Link>
             ))}
             <Link
-              href={inscriptionHref()}
+              href={INSCRIPTION_SECTION_HREF}
               className="focus-ring mt-2 min-h-11 rounded-full bg-epic-orange px-4 py-3 text-center font-semibold text-white"
               onClick={() => setOpen(false)}
             >

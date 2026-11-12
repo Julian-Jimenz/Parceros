@@ -39,22 +39,22 @@ export const CATEGORIES: {
   {
     id: "open-hombres",
     title: "OPEN HOMBRES",
-    description: "Categor\u00EDa Open Hombres. Descripci\u00F3n editable desde administraci\u00F3n.",
+    description: "",
   },
   {
     id: "open-mujeres",
     title: "OPEN MUJERES",
-    description: "Categor\u00EDa Open Mujeres. Descripci\u00F3n editable desde administraci\u00F3n.",
+    description: "",
   },
   {
     id: "recreativa-hombres",
     title: "RECREATIVA HOMBRES",
-    description: "Categor\u00EDa Recreativa Hombres. Descripci\u00F3n editable desde administraci\u00F3n.",
+    description: "",
   },
   {
     id: "recreativa-mujeres",
     title: "RECREATIVA MUJERES",
-    description: "Categor\u00EDa Recreativa Mujeres. Descripci\u00F3n editable desde administraci\u00F3n.",
+    description: "",
   },
 ];
 
